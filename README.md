@@ -9,75 +9,68 @@ DocIntel is a multi-tenant RAG system that allows users to upload documents, bui
 Each tenant has an isolated set of documents and data, allowing multiple users or organizations to use the same system without sharing their knowledge bases.
 
 
-## ✨ Features
+## Features
 
-- 📄 **Document parsing** — PyMuPDF4LLM extracts markdown + structural JSON from PDFs
-- 🧩 **Chunking + vector embeddings** — MarkdownHeaderTextSplitter + RecursiveCharacterTextSplitter (1500 chars, 200 overlap) + OpenAI `text-embedding-3-small` (1536-dim)
-- 🗄️ **pgvector + ParadeDB BM25** — chunks stored in PostgreSQL with pgvector for cosine similarity and ParadeDB `pg_search` for true BM25 lexical ranking
-- ⚡ **Async task queue** — Celery workers handle ingestion in the background so uploads return instantly
-- 🔐 **JWT authentication** — signup/login with HttpOnly cookie sessions; tenant isolation enforced at the dependency layer
-- 🏢 **True multi-tenancy** — every query is scoped to `tenant_id`; tenant A can never see tenant B's data
-- 🖥️ **Next.js frontend** — dark/light mode, glassmorphism design, file upload, chat interface, **collapsible sidebar**, full-width responsive layout
-- 📊 **JSONB audit layer** — full parsed document JSON stored in `parsed_documents` for re-chunking without re-parsing
-- 🔍 **Compliance audit logs** — every Q&A interaction logged to `audit_logs`
-- 🔎 **Hybrid search** — BM25 + vector retrieval with score normalization merge for best-of-both-worlds ranking
-- 🎯 **ONNX cross-encoder reranker** — lightweight BGE reranker via ONNX Runtime for second-pass relevance scoring without PyTorch bloat
+- Multi-tenant document workspaces with tenant-level data isolation
+- Upload and query documents through a web interface
+- Hybrid semantic and lexical retrieval
+- Cross-encoder reranking for retrieved context
+- AI-powered question answering with source references
+- Asynchronous document processing
 
----
-
-## 🚀 Quick Start (Docker)
+## Quick Start
 
 ### Prerequisites
 
-- Docker Engine 24+ / Docker Desktop
-- A [OpenAI](https://openai.com/) API key (for embeddings and LLM)
+* Docker Engine 24+ / Docker Desktop
+* An OpenAI API key
 
-### 1. Configure
+### 1. Clone the repository
 
 ```bash
-cd /home/sethoski/multi-tenant-rag
+git clone <repository-url>
+cd multi-tenant-rag
 ```
+
+### 2. Configure
 
 Create a `.env` file in the project root:
 
 ```env
 OPENAI_API_KEY=your_openai_key_here
-JWT_SECRET_KEY=a-random-32-char-secret-key
+JWT_SECRET_KEY=a-random-32-character-secret
 ```
 
-### 2. Initialise the database (first time only)
+### 3. Initialize the database
+
+Start PostgreSQL:
 
 ```bash
 docker compose up -d postgres
+```
+
+Then initialize the database:
+
+```bash
 docker exec -i rag_postgres psql -U postgres -d rag_db < scripts/schema.sql
 docker exec -i rag_postgres psql -U postgres -d rag_db < scripts/migration_parsed_documents.sql
 docker exec -i rag_postgres psql -U postgres -d rag_db < scripts/migration_bm25.sql
 ```
 
-### 3. Start all services
+### 4. Start DocIntel
 
 ```bash
 docker compose up -d --build
 ```
 
-> ⏳ First build takes ~5–10 min — Docling ML models and ONNX reranker are downloaded.
+### 5. Use DocIntel
 
----
+Open the web interface at http://localhost:3000.
 
-## 🛠️ Usage
+1. Sign up to create your tenant account.
+2. Upload a document and wait for ingestion to complete.
+3. Ask questions about your documents through the chat interface.
 
-| Interface | URL |
-|---|---|
-| Frontend (DocIntel UI) | http://localhost:3000 |
-| FastAPI docs (Swagger) | http://localhost:8000/docs |
-| Health check | http://localhost:8000/health |
-| pgAdmin | http://localhost:5050 (`admin@example.com` / `admin`) |
-
-1. Open http://localhost:3000 → Sign up (creates your isolated tenant account)
-2. Upload a PDF/DOCX — status shows `pending` → Celery processes it asynchronously → `completed`
-3. Ask questions in the chat — top-K chunks retrieved by hybrid search and passed to the LLM
-
----
 
 ## 📦 Technologies
 
